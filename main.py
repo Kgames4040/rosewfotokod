@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 import imaplib, email, re, traceback
 import os
-from dotenv import load_dotenv
 
-load_dotenv()  # .env dosyasını yükle (Render'da otomatik gelir)
+
+  
 
 app = Flask(__name__)
 
