@@ -30,7 +30,7 @@ def get_latest_code_for_key(product_key):
         mail.select("inbox")
 
         # ✅ Türkçe karakter içeren başlık araması
-        status, messages = mail.search(None, '(UNSEEN SUBJECT "tek seferlik kodunuz")')
+        status, messages = mail.search(None, '(UNSEEN SUBJECT "Disney+ için tek seferlik kodunuz")')
         mail_ids = messages[0].split()
 
         if not mail_ids:
