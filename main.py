@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, jsonify
-import imaplib, email, re, traceback
+import imaplib
+import email
+import re
+import traceback
 import os
-
-
-  
 
 app = Flask(__name__)
 
@@ -23,11 +24,12 @@ def get_latest_code_for_key(product_key):
         mail.login(EMAIL, PASSWORD)
         mail.select("inbox")
 
-        status, messages = mail.search(None, '(UNSEEN SUBJECT "Giris kodu")')
+        # Gmail konusunu İngilizce yerine Türkçe de yazabilirsin, ama burada ASCII uyumu için sade bıraktım.
+        status, messages = mail.search(None, '(UNSEEN SUBJECT "Giriş kodu")')
         mail_ids = messages[0].split()
 
         if not mail_ids:
-            print("📭 Hiç okunmamış mail yok.")
+            print("[INFO] Hiç okunmamış mail yok.")
             return None
 
         for i in reversed(mail_ids):
@@ -40,10 +42,12 @@ def get_latest_code_for_key(product_key):
                     if msg.is_multipart():
                         for part in msg.walk():
                             if part.get_content_type() == "text/plain":
-                                body = part.get_payload(decode=True).decode('utf-8', errors="ignore")
+                                charset = part.get_content_charset() or "utf-8"
+                                body = part.get_payload(decode=True).decode(charset, errors="ignore")
                                 break
                     else:
-                        body = msg.get_payload(decode=True).decode('utf-8', errors="ignore")
+                        charset = msg.get_content_charset() or "utf-8"
+                        body = msg.get_payload(decode=True).decode(charset, errors="ignore")
 
                     code = extract_code(body)
 
@@ -51,8 +55,8 @@ def get_latest_code_for_key(product_key):
                         last_codes_per_key[product_key] = code
                         return code
 
-    except Exception:
-        print("❌ HATA:")
+    except Exception as e:
+        print("❌ Hata oluştu:")
         traceback.print_exc()
 
     return None
