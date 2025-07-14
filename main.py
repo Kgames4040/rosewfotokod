@@ -13,13 +13,9 @@ EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
-# ✅ Tanımlı ürün anahtarları
 VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
-
-# ✅ Her ürün anahtarı için son gösterilen kodu saklayan yapı
 last_codes_per_key = {}
 
-# ✅ Kabul edilen e-posta başlıkları
 ACCEPTED_SUBJECTS = ["Giriş kodu", "Disney+ için tek seferlik kodunuz"]
 
 def get_latest_code_for_key(product_key):
@@ -41,34 +37,36 @@ def get_latest_code_for_key(product_key):
                 if isinstance(response_part, tuple):
                     msg = email.message_from_bytes(response_part[1])
 
-                    # ✅ UTF-8 başlık çözümleme
-                    raw_subject = msg["Subject"]
-                    decoded_subject_parts = decode_header(raw_subject)
+                    # ✅ Başlığı UTF-8 ile çöz
                     subject = ""
-                    for part, enc in decoded_subject_parts:
+                    for part, enc in decode_header(msg["Subject"]):
                         if isinstance(part, bytes):
                             subject += part.decode(enc or "utf-8", errors="ignore")
                         else:
                             subject += part
 
-                    # ✅ Başlık kontrolü
-                    if not any(accepted in subject for accepted in ACCEPTED_SUBJECTS):
+                    if not any(keyword in subject for keyword in ACCEPTED_SUBJECTS):
                         continue
 
-                    # ✅ Mail içeriği çözümleme
+                    # ✅ Mail gövdesini çöz (hem text hem html)
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
-                            if part.get_content_type() == "text/plain":
-                                charset = part.get_content_charset() or "utf-8"
-                                body = part.get_payload(decode=True).decode(charset, errors="ignore")
-                                break
+                            content_type = part.get_content_type()
+                            charset = part.get_content_charset() or "utf-8"
+                            if content_type in ["text/plain", "text/html"]:
+                                try:
+                                    body = part.get_payload(decode=True).decode(charset, errors="ignore")
+                                    code = extract_code(body)
+                                    if code:
+                                        break
+                                except Exception:
+                                    continue
                     else:
                         charset = msg.get_content_charset() or "utf-8"
                         body = msg.get_payload(decode=True).decode(charset, errors="ignore")
 
                     code = extract_code(body)
-
                     if code and code != last_codes_per_key.get(product_key):
                         last_codes_per_key[product_key] = code
                         return code
