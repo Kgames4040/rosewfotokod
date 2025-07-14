@@ -1,27 +1,26 @@
 # -*- coding: utf-8 -*-
-import sys
-import os
+from flask import Flask, render_template, request, jsonify
 import imaplib
 import email
+from email.header import decode_header
 import re
 import traceback
-from flask import Flask, render_template, request, jsonify
-
-# ✅ Terminal çıktılarını da UTF-8'e zorla
-sys.stdout.reconfigure(encoding='utf-8')
+import os
 
 app = Flask(__name__)
 
-# .env dosyasından alacağın değerler
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
-# ✅ Geçerli ürün anahtarları
+# ✅ Tanımlı ürün anahtarları
 VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
 
-# ✅ Her anahtar için son kodu saklayan yapı
+# ✅ Her ürün anahtarı için son gösterilen kodu saklayan yapı
 last_codes_per_key = {}
+
+# ✅ Kabul edilen e-posta başlıkları
+ACCEPTED_SUBJECTS = ["Giriş kodu", "Disney+ için tek seferlik kodunuz"]
 
 def get_latest_code_for_key(product_key):
     try:
@@ -29,12 +28,11 @@ def get_latest_code_for_key(product_key):
         mail.login(EMAIL, PASSWORD)
         mail.select("inbox")
 
-        # ✅ Türkçe karakter içeren başlık araması
-        status, messages = mail.search(None, '(UNSEEN SUBJECT "Disney+ için tek seferlik kodunuz")')
+        status, messages = mail.search(None, 'UNSEEN')
         mail_ids = messages[0].split()
 
         if not mail_ids:
-            print("[ℹ️] Hiç okunmamış mail yok.")
+            print("[INFO] Hiç okunmamış mail yok.")
             return None
 
         for i in reversed(mail_ids):
@@ -43,6 +41,21 @@ def get_latest_code_for_key(product_key):
                 if isinstance(response_part, tuple):
                     msg = email.message_from_bytes(response_part[1])
 
+                    # ✅ UTF-8 başlık çözümleme
+                    raw_subject = msg["Subject"]
+                    decoded_subject_parts = decode_header(raw_subject)
+                    subject = ""
+                    for part, enc in decoded_subject_parts:
+                        if isinstance(part, bytes):
+                            subject += part.decode(enc or "utf-8", errors="ignore")
+                        else:
+                            subject += part
+
+                    # ✅ Başlık kontrolü
+                    if not any(accepted in subject for accepted in ACCEPTED_SUBJECTS):
+                        continue
+
+                    # ✅ Mail içeriği çözümleme
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
