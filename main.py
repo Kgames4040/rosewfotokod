@@ -1,11 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 import imaplib, email, re, traceback
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # .env dosyasını yükle (Render'da otomatik gelir)
 
 app = Flask(__name__)
 
-EMAIL = "rosewfotomatikkod@gmail.com"
-PASSWORD = "eawsvuirmhekwbvs"
-IMAP_SERVER = "imap.gmail.com"
+EMAIL = os.getenv("EMAIL")
+PASSWORD = os.getenv("EMAIL_PASSWORD")
+IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
 # ✅ Tanımlı ürün anahtarları
 VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
@@ -19,7 +23,7 @@ def get_latest_code_for_key(product_key):
         mail.login(EMAIL, PASSWORD)
         mail.select("inbox")
 
-        status, messages = mail.search(None, '(UNSEEN)')
+        status, messages = mail.search(None, '(UNSEEN SUBJECT "Giriş kodu")')
         mail_ids = messages[0].split()
 
         if not mail_ids:
@@ -36,14 +40,13 @@ def get_latest_code_for_key(product_key):
                     if msg.is_multipart():
                         for part in msg.walk():
                             if part.get_content_type() == "text/plain":
-                                body = part.get_payload(decode=True).decode(errors="ignore")
+                                body = part.get_payload(decode=True).decode('utf-8', errors="ignore")
                                 break
                     else:
-                        body = msg.get_payload(decode=True).decode(errors="ignore")
+                        body = msg.get_payload(decode=True).decode('utf-8', errors="ignore")
 
                     code = extract_code(body)
 
-                    # ✅ Bu ürün anahtarına ait son kodla karşılaştır
                     if code and code != last_codes_per_key.get(product_key):
                         last_codes_per_key[product_key] = code
                         return code
@@ -55,9 +58,6 @@ def get_latest_code_for_key(product_key):
     return None
 
 def extract_code(body):
-    """
-    Mail gövdesindeki ilk 6 haneli sayıyı yakalar.
-    """
     match = re.search(r"\b\d{6}\b", body)
     return match.group(0) if match else None
 
@@ -74,7 +74,10 @@ def get_code():
         return jsonify({"error": "Geçersiz ürün anahtarı"})
 
     code = get_latest_code_for_key(product_key)
-    return jsonify({"code": code})
+    if code:
+        return jsonify({"code": code})
+    else:
+        return jsonify({"error": "Yeni kod bulunamadı"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
