@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, request, jsonify
+import sys
+import os
 import imaplib
 import email
 import re
 import traceback
-import os
+from flask import Flask, render_template, request, jsonify
+
+# ✅ Terminal çıktılarını da UTF-8'e zorla
+sys.stdout.reconfigure(encoding='utf-8')
 
 app = Flask(__name__)
 
+# .env dosyasından alacağın değerler
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
-# ✅ Tanımlı ürün anahtarları
+# ✅ Geçerli ürün anahtarları
 VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
 
-# ✅ Her ürün anahtarı için son gösterilen kodu saklayan yapı
+# ✅ Her anahtar için son kodu saklayan yapı
 last_codes_per_key = {}
 
 def get_latest_code_for_key(product_key):
@@ -24,12 +29,12 @@ def get_latest_code_for_key(product_key):
         mail.login(EMAIL, PASSWORD)
         mail.select("inbox")
 
-        # Gmail konusunu İngilizce yerine Türkçe de yazabilirsin, ama burada ASCII uyumu için sade bıraktım.
+        # ✅ Türkçe karakter içeren başlık araması
         status, messages = mail.search(None, '(UNSEEN SUBJECT "Giriş kodu")')
         mail_ids = messages[0].split()
 
         if not mail_ids:
-            print("[INFO] Hiç okunmamış mail yok.")
+            print("[ℹ️] Hiç okunmamış mail yok.")
             return None
 
         for i in reversed(mail_ids):
@@ -37,8 +42,8 @@ def get_latest_code_for_key(product_key):
             for response_part in msg_data:
                 if isinstance(response_part, tuple):
                     msg = email.message_from_bytes(response_part[1])
-                    body = ""
 
+                    body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
                             if part.get_content_type() == "text/plain":
@@ -55,7 +60,7 @@ def get_latest_code_for_key(product_key):
                         last_codes_per_key[product_key] = code
                         return code
 
-    except Exception as e:
+    except Exception:
         print("❌ Hata oluştu:")
         traceback.print_exc()
 
