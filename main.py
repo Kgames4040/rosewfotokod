@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 
 EMAIL = os.getenv("EMAIL")
-PASSWORD = os.getenv("EMAIL_PASSWORD")
+PASSWORD = os.getenv("PASSWORD")
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
 # ✅ Tanımlı ürün anahtarları
