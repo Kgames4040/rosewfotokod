@@ -23,7 +23,7 @@ def get_latest_code_for_key(product_key):
         mail.login(EMAIL, PASSWORD)
         mail.select("inbox")
 
-        status, messages = mail.search(None, '(UNSEEN SUBJECT "Giriş kodu")')
+        status, messages = mail.search(None, '(UNSEEN SUBJECT "Giris kodu")')
         mail_ids = messages[0].split()
 
         if not mail_ids:
