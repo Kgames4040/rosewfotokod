@@ -21,7 +21,7 @@ VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
 last_codes_per_key = {}
 
 # ✅ Geçerli e-posta başlıkları ve gönderen adres
-ACCEPTED_SUBJECTS = ["Giriş kodu", "Disney+ için tek seferlik kodunuz"]
+ACCEPTED_SUBJECTS = ["Giriş kodu", "Disney+ için tek seferlik kodunuz", "Disney+ için tek seferlik kodunuz burada"]
 ALLOWED_SENDER = "disneyplus@trx.mail2.disneyplus.com"
 
 # ✅ Kod çıkarma fonksiyonu
