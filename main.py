@@ -9,15 +9,27 @@ import os
 
 app = Flask(__name__)
 
+# 🌐 Ortam değişkenlerinden mail bilgilerini al
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
+# ✅ Geçerli ürün anahtarları
 VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
+
+# ✅ Daha önce gösterilen kodları tutmak için
 last_codes_per_key = {}
 
+# ✅ Geçerli e-posta başlıkları ve gönderen adres
 ACCEPTED_SUBJECTS = ["Giriş kodu", "Disney+ için tek seferlik kodunuz"]
+ALLOWED_SENDER = "disneyplus@trx.mail2.disneyplus.com"
 
+# ✅ Kod çıkarma fonksiyonu
+def extract_code(body):
+    match = re.search(r"\b\d{6}\b", body)
+    return match.group(0) if match else None
+
+# ✅ Mailden kodu alma fonksiyonu (HTML destekli)
 def get_latest_code_for_key(product_key):
     try:
         mail = imaplib.IMAP4_SSL(IMAP_SERVER)
@@ -38,36 +50,39 @@ def get_latest_code_for_key(product_key):
                     msg = email.message_from_bytes(response_part[1])
 
                     # ✅ Başlığı UTF-8 ile çöz
+                    raw_subject = msg["Subject"]
+                    decoded_subject_parts = decode_header(raw_subject)
                     subject = ""
-                    for part, enc in decode_header(msg["Subject"]):
+                    for part, enc in decoded_subject_parts:
                         if isinstance(part, bytes):
                             subject += part.decode(enc or "utf-8", errors="ignore")
                         else:
                             subject += part
 
-                    if not any(keyword in subject for keyword in ACCEPTED_SUBJECTS):
+                    # ✅ Başlık ve gönderen kontrolü
+                    if not any(accepted in subject for accepted in ACCEPTED_SUBJECTS):
+                        continue
+                    from_address = msg.get("From", "").lower()
+                    if ALLOWED_SENDER not in from_address:
                         continue
 
-                    # ✅ Mail gövdesini çöz (hem text hem html)
+                    # ✅ İçerik (hem HTML hem Plain Text)
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
                             content_type = part.get_content_type()
-                            charset = part.get_content_charset() or "utf-8"
                             if content_type in ["text/plain", "text/html"]:
-                                try:
-                                    body = part.get_payload(decode=True).decode(charset, errors="ignore")
-                                    code = extract_code(body)
-                                    if code:
-                                        break
-                                except Exception:
-                                    continue
+                                charset = part.get_content_charset() or "utf-8"
+                                body = part.get_payload(decode=True).decode(charset, errors="ignore")
+                                if extract_code(body):  # Kod varsa dur
+                                    break
                     else:
                         charset = msg.get_content_charset() or "utf-8"
                         body = msg.get_payload(decode=True).decode(charset, errors="ignore")
 
+                    # ✅ Kod çıkar
                     code = extract_code(body)
-                    if code and code != last_codes_per_key.get(product_key):
+                    if code and code not in ["707070", "000000"] and code != last_codes_per_key.get(product_key):
                         last_codes_per_key[product_key] = code
                         return code
 
@@ -77,14 +92,12 @@ def get_latest_code_for_key(product_key):
 
     return None
 
-def extract_code(body):
-    match = re.search(r"\b\d{6}\b", body)
-    return match.group(0) if match else None
-
+# ✅ Anasayfa route
 @app.route("/")
 def home():
     return render_template("index.html")
 
+# ✅ Kod alma route
 @app.route("/get-code", methods=["POST"])
 def get_code():
     data = request.get_json()
@@ -99,5 +112,6 @@ def get_code():
     else:
         return jsonify({"error": "Yeni kod bulunamadı"})
 
+# ✅ Uygulamayı başlat
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
