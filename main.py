@@ -6,30 +6,27 @@ from email.header import decode_header
 import re
 import traceback
 import os
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
-# 🌐 Ortam değişkenlerinden mail bilgilerini al
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
-# ✅ Geçerli ürün anahtarları
 VALID_KEYS = ["ROSEWF2025", "XDR4045674"]
-
-# ✅ Daha önce gösterilen kodları tutmak için
 last_codes_per_key = {}
 
-# ✅ Geçerli e-posta başlıkları ve gönderen adres
-ACCEPTED_SUBJECTS = ["Giriş kodu", "Disney+ için tek seferlik kodunuz", "Disney+ için tek seferlik kodunuz burada"]
-ALLOWED_SENDER = "disneyplus@trx.mail2.disneyplus.com"
+# ✅ Kabul edilen e-posta başlıkları
+ACCEPTED_SUBJECTS = [
+    "Giriş kodu",
+    "Disney+ için tek seferlik kodunuz",
+    "Disney+ için tek seferlik kodunuz burada"
+]
 
-# ✅ Kod çıkarma fonksiyonu
-def extract_code(body):
-    match = re.search(r"\b\d{6}\b", body)
-    return match.group(0) if match else None
+# ✅ Disney+ gönderen adres filtresi
+ALLOWED_SENDERS = ["disneyplus@trx.mail2.disneyplus.com"]
 
-# ✅ Mailden kodu alma fonksiyonu (HTML destekli)
 def get_latest_code_for_key(product_key):
     try:
         mail = imaplib.IMAP4_SSL(IMAP_SERVER)
@@ -49,7 +46,7 @@ def get_latest_code_for_key(product_key):
                 if isinstance(response_part, tuple):
                     msg = email.message_from_bytes(response_part[1])
 
-                    # ✅ Başlığı UTF-8 ile çöz
+                    # ✅ UTF-8 başlık çözümleme
                     raw_subject = msg["Subject"]
                     decoded_subject_parts = decode_header(raw_subject)
                     subject = ""
@@ -59,30 +56,47 @@ def get_latest_code_for_key(product_key):
                         else:
                             subject += part
 
-                    # ✅ Başlık ve gönderen kontrolü
-                    if not any(accepted in subject for accepted in ACCEPTED_SUBJECTS):
-                        continue
-                    from_address = msg.get("From", "").lower()
-                    if ALLOWED_SENDER not in from_address:
+                    # ✅ Gönderen kontrolü
+                    from_email = email.utils.parseaddr(msg.get("From"))[1]
+                    if from_email not in ALLOWED_SENDERS:
                         continue
 
-                    # ✅ İçerik (hem HTML hem Plain Text)
+                    # ✅ Başlık kontrolü
+                    if not any(keyword in subject for keyword in ACCEPTED_SUBJECTS):
+                        continue
+
+                    # ✅ Mail içeriğini oku (text/plain + text/html)
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
                             content_type = part.get_content_type()
-                            if content_type in ["text/plain", "text/html"]:
-                                charset = part.get_content_charset() or "utf-8"
-                                body = part.get_payload(decode=True).decode(charset, errors="ignore")
-                                if extract_code(body):  # Kod varsa dur
-                                    break
+                            charset = part.get_content_charset() or "utf-8"
+                            if content_type == "text/plain":
+                                try:
+                                    body = part.get_payload(decode=True).decode(charset, errors="ignore")
+                                except:
+                                    continue
+                            elif content_type == "text/html" and not body:
+                                try:
+                                    html = part.get_payload(decode=True).decode(charset, errors="ignore")
+                                    soup = BeautifulSoup(html, "html.parser")
+                                    body = soup.get_text()
+                                except:
+                                    continue
                     else:
                         charset = msg.get_content_charset() or "utf-8"
-                        body = msg.get_payload(decode=True).decode(charset, errors="ignore")
+                        content_type = msg.get_content_type()
+                        if content_type == "text/html":
+                            html = msg.get_payload(decode=True).decode(charset, errors="ignore")
+                            soup = BeautifulSoup(html, "html.parser")
+                            body = soup.get_text()
+                        else:
+                            body = msg.get_payload(decode=True).decode(charset, errors="ignore")
 
-                    # ✅ Kod çıkar
+                    # ✅ Kod çıkarma
                     code = extract_code(body)
-                    if code and code not in ["707070", "000000"] and code != last_codes_per_key.get(product_key):
+
+                    if code and code != last_codes_per_key.get(product_key):
                         last_codes_per_key[product_key] = code
                         return code
 
@@ -92,12 +106,14 @@ def get_latest_code_for_key(product_key):
 
     return None
 
-# ✅ Anasayfa route
+def extract_code(body):
+    match = re.search(r"\b\d{6}\b", body)
+    return match.group(0) if match else None
+
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# ✅ Kod alma route
 @app.route("/get-code", methods=["POST"])
 def get_code():
     data = request.get_json()
@@ -112,6 +128,5 @@ def get_code():
     else:
         return jsonify({"error": "Yeni kod bulunamadı"})
 
-# ✅ Uygulamayı başlat
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
