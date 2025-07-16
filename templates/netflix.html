@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Netflix Kod Al</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+</head>
+<body style="background-image: url('/static/arka_planlar/netflixa.png')">
+  <div class="overlay">
+    <h1 class="intro-text">ROSEWF</h1>
+  </div>
+
+  <div class="main-container">
+    <h2 class="main-title">Netflix Kod Al</h2>
+
+    <div class="code-box">
+      <input type="text" id="key" placeholder="Ürün Anahtarı Girin" />
+      <button>Giriş Kodu Al</button>
+      <p id="error-message" class="error-message"></p>
+
+      <div id="code-box" class="hidden">
+        <h3>Kodunuz:</h3>
+        <p id="code-value"></p>
+      </div>
+
+      <a href="/" class="home-button">Ana Sayfa</a>
+    </div>
+  </div>
+
+  <div id="popup" class="popup hidden">
+    <div class="popup-content">
+      <div class="loader"></div>
+      <p class="loading-text">Kod bekleniyor...</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const overlay = document.querySelector(".overlay");
+      overlay.classList.add("slide-up");
+
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 2000);
+
+      const button = document.querySelector("button");
+      button.addEventListener("click", submitKey);
+    });
+
+    async function submitKey() {
+      const key = document.getElementById("key").value.trim();
+      const popup = document.getElementById("popup");
+      const errorEl = document.getElementById("error-message");
+      const codeBox = document.getElementById("code-box");
+      const codeValue = document.getElementById("code-value");
+
+      errorEl.innerText = "";
+      codeBox.classList.add("hidden");
+
+      if (!key) {
+        errorEl.innerText = "Lütfen ürün anahtarınızı girin.";
+        return;
+      }
+
+      popup.classList.remove("hidden");
+
+      try {
+        const res = await fetch("/get-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, platform: "netflix" })  // ✅ platform bilgisi eklendi
+        });
+
+        const data = await res.json();
+        popup.classList.add("hidden");
+
+        if (data.error) {
+          errorEl.innerText = data.error;
+        } else if (data.code) {
+          codeBox.classList.remove("hidden");
+          codeValue.innerText = data.code;
+        } else {
+          errorEl.innerText = "Kod bulunamadı.";
+        }
+      } catch (err) {
+        popup.classList.add("hidden");
+        errorEl.innerText = "Sunucu hatası oluştu.";
+      }
+    }
+  </script>
+</body>
+</html>
