@@ -1,0 +1,4 @@
+Flask
+python-dotenv
+beautifulsoup4
+gunicorn
