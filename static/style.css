@@ -1,0 +1,224 @@
+/* Genel stil */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Open Sans', sans-serif;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100vh;
+  color: white;
+  overflow: hidden;
+}
+
+/* Açılış animasyonu */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 1.2s ease-out;
+}
+
+.slide-up {
+  transform: translateY(-100%);
+}
+
+/* Ana içerik */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.main-title {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.code-box {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.code-box input {
+  padding: 10px;
+  width: 250px;
+  border-radius: 5px;
+  border: none;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: black;
+}
+
+.code-box button {
+  background-color: black;
+  color: white;
+  padding: 10px 20px;
+  border: 2px solid white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.code-box button:hover {
+  background-color: white;
+  color: black;
+}
+
+#code-box {
+  margin-top: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Kod bekleniyor popup */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  text-align: center;
+}
+
+.loader {
+  border: 6px solid #000;
+  border-top: 6px solid #fff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: black;
+  font-weight: bold;
+}
+
+/* Ana sayfa kategori butonları */
+.category-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 80px;
+}
+
+.category-button {
+  width: 140px;
+  height: 140px;
+  border: 2px solid white;
+  border-radius: 10px;
+  background-color: #000;
+  margin: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease;
+  text-decoration: none;
+}
+
+.category-button:hover {
+  transform: scale(1.05);
+}
+
+.category-button img {
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+}
+
+.platform-grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 30px;
+  padding: 40px;
+}
+
+.platform-card {
+  width: 160px;
+  height: 160px;
+  background-color: #000;
+  border: 2px solid white;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease;
+  text-align: center;
+  text-decoration: none;
+}
+
+.platform-card:hover {
+  transform: scale(1.05);
+}
+
+.platform-card img {
+  max-width: 70%;
+  max-height: 70%;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.platform-card p {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.popup.hidden {
+  display: none !important;
+}
+
+.home-button {
+  display: inline-block;
+  background-color: black;
+  color: white;
+  padding: 10px 20px;
+  border: 2px solid white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.home-button:hover {
+  background-color: white;
+  color: black;
+}
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: center;
+}
