@@ -207,7 +207,7 @@ def kategori(name):
 @app.route("/admin-login", methods=["GET", "POST"])
 def admin_login():
     if request.method == "POST":
-        if request.form.get("username") == "admin" and request.form.get("password") == "1234":
+        if request.form.get("username") == "admin" and request.form.get("password") == "neco404":
             session["admin"] = True
             return redirect(url_for("admin_dashboard"))
         return render_template("admin_login.html", error="Hatalı kullanıcı adı veya şifre.")
